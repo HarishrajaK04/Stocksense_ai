@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StockSense AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script>/* Set this if the frontend is hosted separately from the API, e.g. "https://stocksense-api.onrender.com" */
+window.STOCKSENSE_API = "";</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<datalist id="symbols"></datalist>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><span class="logo">S</span><div><b>StockSense AI</b><small>Indian market intelligence</small></div></div>
+    <nav id="nav">
+      <button data-view="overview" class="active">📊&nbsp; Market Overview</button>
+      <button data-view="explorer">🔎&nbsp; Market Explorer</button>
+      <button data-view="news">📰&nbsp; News &amp; Sentiment</button>
+      <button data-view="chat">🤖&nbsp; AI Chatbot</button>
+      <button data-view="forecast">🔮&nbsp; Forecast Lab</button>
+      <button data-view="models">🧠&nbsp; Model Intelligence</button>
+      <button data-view="strategy">🧪&nbsp; Strategy Lab</button>
+      <button data-view="risk">🛡️&nbsp; Risk Center</button>
+      <button data-view="watchlist">⭐&nbsp; Watchlist</button>
+      <button data-view="settings">⚙️&nbsp; Settings</button>
+    </nav>
+    <p class="fine">Research tool only. Not investment advice. Data may be delayed.</p>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <button id="menuBtn" class="ghost menu">Menu</button>
+      <div id="marketPill" class="pill">Loading...</div>
+      <div class="grow"></div>
+      <span id="sourceBadge" class="badge"></span>
+      <span id="updated" class="muted mono"></span>
+    </header>
+    <div id="demoBanner" class="banner hidden">Demo mode: prices are synthetic. Unset STOCKSENSE_DEMO to use live data.</div>
+    <div id="errorBanner" class="banner err hidden"></div>
+
+    <!-- OVERVIEW -->
+    <section class="view active" id="view-overview">
+      <div class="hero"><h1>Good to see you 👋</h1><p>Live Indian market data, news sentiment, risk and strategy tools - all in one place. Research smarter, not harder.</p></div>
+      <div class="cards" id="indexCards"></div>
+      <div class="panel"><h3>Market summary</h3><p id="summaryText" class="muted">Loading...</p><div id="breadth"></div></div>
+      <div class="panel"><h3>Large-cap movers</h3>
+        <div class="table-wrap"><table id="moversTable"><thead><tr><th>Symbol</th><th>Company</th><th class="r">Price (Rs)</th><th class="r">Change</th><th class="r">Change %</th><th></th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- EXPLORER -->
+    <section class="view" id="view-explorer">
+      <h1>Market Explorer</h1>
+      <div class="toolbar">
+        <input id="exSymbol" list="symbols" placeholder="Search symbol or company (e.g. TCS, Infosys)" autocomplete="off">
+        <button id="exGo">Load</button>
+        <button id="exWatch" class="ghost">Add to watchlist</button>
+      </div>
+      <div id="exResults" class="chips"></div>
+      <div id="exStats" class="cards"></div>
+      <div class="panel">
+        <div class="toolbar">
+          <div class="seg" id="exRange"></div>
+          <label class="chk"><input type="checkbox" id="exSma20" checked> SMA 20</label>
+          <label class="chk"><input type="checkbox" id="exSma50" checked> SMA 50</label>
+          <label class="chk"><input type="checkbox" id="exVol" checked> Volume</label>
+        </div>
+        <div class="chart-box tall"><canvas id="exChart"></canvas></div>
+        <div class="chart-box short" id="exVolBox"><canvas id="exVolChart"></canvas></div>
+        <div id="exTech" class="chips"></div>
+      </div>
+      <div class="panel"><h3>Compare performance</h3>
+        <div class="toolbar">
+          <input id="cmpSymbols" list="symbols" placeholder="TCS, INFY, HCLTECH" value="TCS, INFY, HCLTECH">
+          <select id="cmpPeriod"><option value="3mo">3M</option><option value="6mo">6M</option><option value="1y" selected>1Y</option><option value="5y">5Y</option></select>
+          <button id="cmpGo">Compare</button>
+        </div>
+        <div class="chart-box"><canvas id="cmpChart"></canvas></div>
+        <div class="table-wrap"><table id="cmpTable"></table></div>
+      </div>
+      <div class="panel"><h3>Recent price history</h3><div class="table-wrap"><table id="histTable"></table></div></div>
+    </section>
+
+    <!-- NEWS -->
+    <section class="view" id="view-news">
+      <h1>News &amp; Sentiment</h1>
+      <div class="toolbar">
+        <input id="newsSymbol" list="symbols" placeholder="Symbol (leave empty for overall market)">
+        <button id="newsGo">Fetch headlines</button>
+      </div>
+      <div class="grid2">
+        <div class="panel"><h3>Sentiment mix</h3><div class="chart-box short"><canvas id="sentChart"></canvas></div><p id="sentSummary" class="muted"></p></div>
+        <div class="panel"><h3>How it works</h3><p class="muted">Headlines come from Google News (last 7 days). Each is scored by a transparent finance lexicon with negation handling, giving a score from -1 to +1. It reads headlines only, so treat it as a quick pulse, not a verdict.</p></div>
+      </div>
+      <div class="panel"><div id="newsList"></div></div>
+    </section>
+
+    <!-- CHAT -->
+    <section class="view" id="view-chat">
+      <h1>AI Chatbot</h1>
+      <div class="panel chat">
+        <div id="chatLog" class="chat-log"></div>
+        <div class="chips" id="chatSuggest"></div>
+        <div class="toolbar"><input id="chatInput" placeholder="Ask about a stock, an indicator, or a financial term..." autocomplete="off"><button id="chatSend">Send</button></div>
+      </div>
+    </section>
+
+    <!-- FORECAST -->
+    <section class="view" id="view-forecast">
+      <h1>Forecast Lab</h1>
+      <div class="panel">
+        <div class="toolbar">
+          <input id="fcSymbol" list="symbols" placeholder="Symbol" value="RELIANCE">
+          <select id="fcModel"><option value="ridge">Ridge regression</option><option value="random_forest">Random forest</option><option value="gradient_boosting">Gradient boosting</option></select>
+          <select id="fcPeriod"><option value="2y">2Y data</option><option value="5y" selected>5Y data</option><option value="10y">10Y data</option></select>
+          <label>Horizon <input id="fcHorizon" type="number" min="1" max="30" value="10" style="width:70px"> days</label>
+          <button id="fcGo">Train &amp; forecast</button>
+        </div>
+        <div id="fcVerdict" class="callout hidden"></div>
+        <div class="chart-box tall"><canvas id="fcChart"></canvas></div>
+        <div class="table-wrap"><table id="fcTable"></table></div>
+        <p id="fcNote" class="muted"></p>
+      </div>
+    </section>
+
+    <!-- MODELS -->
+    <section class="view" id="view-models">
+      <h1>Model Intelligence</h1>
+      <div id="modelDocs"></div>
+    </section>
+
+    <!-- STRATEGY -->
+    <section class="view" id="view-strategy">
+      <h1>Strategy Lab</h1>
+      <div class="panel">
+        <div class="toolbar">
+          <input id="stSymbol" list="symbols" placeholder="Symbol" value="HDFCBANK">
+          <select id="stStrategy">
+            <option value="sma_cross">SMA crossover</option>
+            <option value="rsi_reversion">RSI mean reversion</option>
+            <option value="breakout">Channel breakout</option>
+            <option value="buy_hold">Buy &amp; hold</option>
+          </select>
+          <select id="stPeriod"><option value="2y">2Y</option><option value="5y" selected>5Y</option><option value="10y">10Y</option></select>
+        </div>
+        <div class="toolbar" id="stParams"></div>
+        <div class="toolbar">
+          <label>Capital (Rs) <input id="stCapital" type="number" value="100000" min="1000" style="width:110px"></label>
+          <label>Cost (bps / side) <input id="stCost" type="number" value="10" min="0" max="500" style="width:80px"></label>
+          <button id="stGo">Run backtest</button>
+        </div>
+        <div class="chart-box tall"><canvas id="stChart"></canvas></div>
+        <div id="stMetrics" class="cards"></div>
+        <p id="stNote" class="muted"></p>
+        <h3>Recent trades</h3>
+        <div class="table-wrap"><table id="stTrades"></table></div>
+      </div>
+    </section>
+
+    <!-- RISK -->
+    <section class="view" id="view-risk">
+      <h1>Risk Center</h1>
+      <div class="toolbar">
+        <input id="rkSymbol" list="symbols" placeholder="Symbol" value="TCS">
+        <select id="rkPeriod"><option value="1y">1Y</option><option value="2y">2Y</option><option value="5y" selected>5Y</option></select>
+        <button id="rkGo">Analyse risk</button>
+      </div>
+      <div id="rkCards" class="cards"></div>
+      <div class="grid2">
+        <div class="panel"><h3>Drawdown from peak (%)</h3><div class="chart-box"><canvas id="rkDD"></canvas></div></div>
+        <div class="panel"><h3>30-day rolling volatility (annualised %)</h3><div class="chart-box"><canvas id="rkVol"></canvas></div></div>
+      </div>
+      <div class="panel"><h3>Distribution of daily returns (%)</h3><div class="chart-box"><canvas id="rkHist"></canvas></div></div>
+    </section>
+
+    <!-- WATCHLIST -->
+    <section class="view" id="view-watchlist">
+      <h1>Personal Watchlist</h1>
+      <div class="toolbar">
+        <input id="wlSymbol" list="symbols" placeholder="Add symbol (e.g. ITC)">
+        <button id="wlAdd">Add</button>
+      </div>
+      <div class="panel"><div class="table-wrap"><table id="wlTable"></table></div><p id="wlEmpty" class="muted hidden">Your watchlist is empty. Add a symbol above or use the star on the Overview page.</p></div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="view" id="view-settings">
+      <h1>Settings</h1>
+      <div class="panel form">
+        <label>Default stock <input id="setSymbol" list="symbols"></label>
+        <label>Default chart range <select id="setRange"></select></label>
+        <label>Auto-refresh (seconds, 0 = off) <input id="setRefresh" type="number" min="0" max="600"></label>
+        <label>News search extra keywords <input id="setNews" placeholder="e.g. earnings OR results"></label>
+        <label>API base URL (only if hosted separately) <input id="setApi" placeholder="https://your-api.onrender.com"></label>
+        <div class="toolbar"><button id="setSave">Save settings</button><button id="setReset" class="ghost">Reset</button><span id="setMsg" class="muted"></span></div>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
