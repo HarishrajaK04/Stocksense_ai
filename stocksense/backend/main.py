@@ -28,7 +28,13 @@ def _guard(fn, *a, **kw):
 # ------------------------------------------------------------------ market
 @app.get("/api/health")
 def health():
-    return {"ok": True, "demo": data.DEMO, "market": data.market_status(),\n            "llm": bool(os.getenv("GEMINI_API_KEY") or os.getenv("ANTHROPIC_API_KEY")),\n            "ai_provider": "Gemini" if os.getenv("GEMINI_API_KEY") else "Claude" if os.getenv("ANTHROPIC_API_KEY") else "Rules fallback"}
+    return {
+        "ok": True,
+        "demo": data.DEMO,
+        "market": data.market_status(),
+        "llm": bool(os.getenv("GEMINI_API_KEY") or os.getenv("ANTHROPIC_API_KEY")),
+        "ai_provider": "Gemini" if os.getenv("GEMINI_API_KEY") else "Claude" if os.getenv("ANTHROPIC_API_KEY") else "Rules fallback",
+    }
 
 
 @app.get("/api/stocks")
