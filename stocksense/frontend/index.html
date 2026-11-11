@@ -6,7 +6,7 @@
 <title>StockSense AI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=20261111b">
 <script>/* Set this if the frontend is hosted separately from the API, e.g. "https://stocksense-api.onrender.com" */
 window.STOCKSENSE_API = "";</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -15,7 +15,7 @@ window.STOCKSENSE_API = "";</script>
 <datalist id="symbols"></datalist>
 <div class="app">
   <aside class="sidebar" id="sidebar">
-    <div class="brand"><span class="logo">S</span><div><b>StockSense AI</b><small>Indian market intelligence</small></div></div>
+    <div class="brand"><span class="logo" aria-label="StockSense market chart icon"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 6-7"/><path d="M17 6h3v3"/></svg></span><div><b>StockSense AI</b><small>Indian market intelligence</small></div></div>
     <nav id="nav">
       <button data-view="overview" class="active">📊&nbsp; Market Overview</button>
       <button data-view="explorer">🔎&nbsp; Market Explorer</button>
@@ -206,6 +206,6 @@ window.STOCKSENSE_API = "";</script>
     </section>
   </main>
 </div>
-<script src="app.js"></script>
+<script src="app.js?v=20261111b"></script>
 </body>
 </html>
