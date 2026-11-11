@@ -359,9 +359,9 @@ async function refreshSettingsStatus() {
 $("#setSave").addEventListener("click", () => {
   S = { symbol: $("#setSymbol").value.trim().toUpperCase() || DEFAULTS.symbol, range: $("#setRange").value, refresh: Math.max(0, +$("#setRefresh").value || 0), news: $("#setNews").value.trim(), apiBase: $("#setApi").value.trim() };
   try { localStorage.setItem("ss_settings", JSON.stringify(S)); } catch { }
-  exRange = S.range; buildRangeButtons(); startTimer(); $("#setMsg").textContent = "Saved.";
+  exRange = S.range; buildRangeButtons(); startTimer(); refreshSettingsStatus(); $("#setMsg").textContent = "Saved.";
 });
-$("#setReset").addEventListener("click", () => { try { localStorage.removeItem("ss_settings"); } catch { } S = { ...DEFAULTS }; fillSettings(); startTimer(); $("#setMsg").textContent = "Reset to defaults."; });
+$("#setReset").addEventListener("click", () => { try { localStorage.removeItem("ss_settings"); } catch { } S = { ...DEFAULTS }; fillSettings(); startTimer(); refreshSettingsStatus(); $("#setMsg").textContent = "Reset to defaults."; });
 
 /* ------------------------------------------------------------ loaders / boot */
 const loaders = {
