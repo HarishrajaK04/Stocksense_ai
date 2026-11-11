@@ -18,7 +18,7 @@ uvicorn backend.main:app --reload
 The backend serves the dashboard too, so this single command runs everything.
 
 Optional:
-- `ANTHROPIC_API_KEY=...` enables the LLM chatbot (otherwise a rule-based assistant is used). Model: `STOCKSENSE_LLM_MODEL` (default `claude-haiku-5-5`).
+- `GEMINI_API_KEY=...` enables the Gemini chatbot (recommended). Model: `STOCKSENSE_GEMINI_MODEL` (default `gemini-2.5-flash`). The key must be configured as a server environment variable; never place it in frontend code.\n- `ANTHROPIC_API_KEY=...` remains supported as a fallback provider when Gemini is not configured. Model: `STOCKSENSE_LLM_MODEL` (default `claude-haiku-5-5`). If neither key is set, a limited rule-based assistant is used.
 - `STOCKSENSE_DEMO=1` uses synthetic data for offline development. The UI shows a demo banner.
 
 ## How "real time" works here
