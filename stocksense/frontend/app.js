@@ -194,11 +194,11 @@ async function sendChat(text) {
   const wait = addMsg("bot", "Thinking...");
   try {
     const r = await post("/api/chat", { message: text, history: chatHistory });
-    wait.remove(); addMsg("bot", r.reply, r.mode === "llm" ? "AI model, grounded in live data" : "rule-based mode, grounded in live data");
+    wait.remove(); addMsg("bot", r.reply, r.mode === "gemini" ? "Gemini · grounded in available market data" : r.mode === "llm" ? "Claude · grounded in available market data" : "Fallback assistant · limited responses");
     chatHistory.push({ role: "user", content: text }, { role: "assistant", content: r.reply }); chatHistory = chatHistory.slice(-10);
   } catch (e) { wait.remove(); addMsg("bot", "Error: " + e.message); }
 }
-$("#chatSend").addEventListener("click", () => sendChat());
+$("#chatSend").addEventListener("click", () => sendChat());\n$("#chatClear").addEventListener("click", () => { chatHistory = []; $("#chatLog").innerHTML = ""; addMsg("bot", "New conversation started. Ask me about an NSE stock, market movement, indicator or risk metric."); });
 $("#chatInput").addEventListener("keydown", e => { if (e.key === "Enter") sendChat(); });
 $("#chatSuggest").innerHTML = SUGGEST.map(s => `<span class="chip" data-q="${esc(s)}">${esc(s)}</span>`).join("");
 $("#chatSuggest").addEventListener("click", e => { const c = e.target.closest("[data-q]"); if (c) sendChat(c.dataset.q); });
@@ -304,7 +304,18 @@ $("#wlAdd").addEventListener("click", () => { const s = $("#wlSymbol").value.tri
 $("#wlSymbol").addEventListener("keydown", e => { if (e.key === "Enter") $("#wlAdd").click(); });
 
 /* ------------------------------------------------------------ settings */
-function fillSettings() { $("#setSymbol").value = S.symbol; $("#setRefresh").value = S.refresh; $("#setNews").value = S.news; $("#setApi").value = S.apiBase; buildRangeButtons(); }
+function fillSettings() {
+  $("#setSymbol").value = S.symbol; $("#setRefresh").value = S.refresh;
+  $("#setNews").value = S.news; $("#setApi").value = S.apiBase; buildRangeButtons();
+  refreshSettingsStatus();
+}
+async function refreshSettingsStatus() {
+  const el = $("#settingsStatus"); if (!el) return;
+  try {
+    const h = await api("/api/health");
+    el.innerHTML = `<b>API:</b> <span class="up">Connected</span><br><b>AI provider:</b> ${esc(h.ai_provider || (h.llm ? "Configured" : "Rules fallback"))}<br><span class="muted">${h.llm ? "Server-side AI key detected. API keys are never shown in this dashboard." : "Add GEMINI_API_KEY in your hosting provider's environment variables to enable Gemini."}</span>`;
+  } catch (e) { el.textContent = "Could not verify API status: " + e.message; }
+}
 $("#setSave").addEventListener("click", () => {
   S = { symbol: $("#setSymbol").value.trim().toUpperCase() || DEFAULTS.symbol, range: $("#setRange").value, refresh: Math.max(0, +$("#setRefresh").value || 0), news: $("#setNews").value.trim(), apiBase: $("#setApi").value.trim() };
   try { localStorage.setItem("ss_settings", JSON.stringify(S)); } catch { }
