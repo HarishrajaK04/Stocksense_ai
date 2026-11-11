@@ -368,9 +368,7 @@ const loaders = {
   overview: loadOverview,
   explorer: () => { if (!lastHist || lastHist.symbol !== (exSymbol || "").toUpperCase()) loadExplorer(exSymbol || S.symbol); },
   news: () => { if (!$("#newsList").children.length) loadNews(); },
-  chat: () => { if (!$("#chatLog").children.length) addMsg("bot", "Hi! I'm StockSense AI. Ask me about any NSE stock, an indicator, or a market term - I'll use live data where I can.
-
-Research only, not financial advice."); },
+  chat: () => { if (!$("#chatLog").children.length) addMsg("bot", "Hi! I'm StockSense AI. Ask me about any NSE stock, an indicator, or a market term - I'll use live data where I can.\\n\\nResearch only, not financial advice."); },
   forecast: () => { }, models: loadModels, strategy: () => { }, risk: () => { }, watchlist: loadWatchlist, settings: fillSettings,
 };
 let timer = null;
