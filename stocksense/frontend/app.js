@@ -273,6 +273,7 @@ async function loadModels() {
 }
 
 /* ------------------------------------------------------------ model benchmarking */
+if ($("#modelBenchGo")) {
 $("#modelBenchGo").addEventListener("click", () => guarded($("#modelBenchGo"), async () => {
   const symbol = $("#modelBenchSymbol").value.trim().toUpperCase() || "RELIANCE";
   const period = $("#modelBenchPeriod").value;
@@ -310,6 +311,7 @@ $("#modelBenchGo").addEventListener("click", () => guarded($("#modelBenchGo"), a
     throw e;
   }
 }));
+}
 
 /* ------------------------------------------------------------ strategy */
 const PARAMS = {
