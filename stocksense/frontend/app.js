@@ -198,7 +198,8 @@ async function sendChat(text) {
     chatHistory.push({ role: "user", content: text }, { role: "assistant", content: r.reply }); chatHistory = chatHistory.slice(-10);
   } catch (e) { wait.remove(); addMsg("bot", "Error: " + e.message); }
 }
-$("#chatSend").addEventListener("click", () => sendChat());\n$("#chatClear").addEventListener("click", () => { chatHistory = []; $("#chatLog").innerHTML = ""; addMsg("bot", "New conversation started. Ask me about an NSE stock, market movement, indicator or risk metric."); });
+$("#chatSend").addEventListener("click", () => sendChat());
+$("#chatClear").addEventListener("click", () => { chatHistory = []; $("#chatLog").innerHTML = ""; addMsg("bot", "New conversation started. Ask me about an NSE stock, market movement, indicator or risk metric."); });
 $("#chatInput").addEventListener("keydown", e => { if (e.key === "Enter") sendChat(); });
 $("#chatSuggest").innerHTML = SUGGEST.map(s => `<span class="chip" data-q="${esc(s)}">${esc(s)}</span>`).join("");
 $("#chatSuggest").addEventListener("click", e => { const c = e.target.closest("[data-q]"); if (c) sendChat(c.dataset.q); });
@@ -367,7 +368,9 @@ const loaders = {
   overview: loadOverview,
   explorer: () => { if (!lastHist || lastHist.symbol !== (exSymbol || "").toUpperCase()) loadExplorer(exSymbol || S.symbol); },
   news: () => { if (!$("#newsList").children.length) loadNews(); },
-  chat: () => { if (!$("#chatLog").children.length) addMsg("bot", "Hi! I'm StockSense AI. Ask me about any NSE stock, an indicator, or a market term - I'll use live data where I can.\n\nResearch only, not financial advice."); },
+  chat: () => { if (!$("#chatLog").children.length) addMsg("bot", "Hi! I'm StockSense AI. Ask me about any NSE stock, an indicator, or a market term - I'll use live data where I can.
+
+Research only, not financial advice."); },
   forecast: () => { }, models: loadModels, strategy: () => { }, risk: () => { }, watchlist: loadWatchlist, settings: fillSettings,
 };
 let timer = null;
