@@ -27,7 +27,14 @@ function saveWatch() { try { localStorage.setItem("ss_watch", JSON.stringify(wat
 const base = () => (S.apiBase || window.STOCKSENSE_API || "").replace(/\/$/, "");
 async function api(path, opts) {
   let r;
-  try { r = await fetch(base() + path, opts); } catch (e) { throw new Error("Cannot reach the API. Is the backend running?"); }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 45000);
+  try {
+    r = await fetch(base() + path, { ...(opts || {}), signal: controller.signal });
+  } catch (e) {
+    if (e.name === "AbortError") throw new Error("The market data API timed out after 45 seconds. Please retry; the data provider may be slow.");
+    throw new Error("Cannot reach the API. Check the API Base URL in Settings and make sure it is empty when the dashboard and API are hosted together.");
+  } finally { clearTimeout(timeout); }
   if (!r.ok) { let m = r.statusText; try { m = (await r.json()).detail || m; } catch { } throw new Error(typeof m === "string" ? m : JSON.stringify(m)); }
   return r.json();
 }
