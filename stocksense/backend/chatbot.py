@@ -130,8 +130,8 @@ def _gemini_reply(message: str, history: list[dict] | None, ctx: str) -> str:
             contents.append({"role": "user" if role == "user" else "model",
                              "parts": [{"text": content[:3000]}]})
     prompt = (
-        f"CURRENT VERIFIED STOCKSENSE DATA (use only for current numeric claims):\\n{ctx or 'No live market context available.'}"
-        f"\\n\\nUSER QUESTION: {message}\\n\\n"
+        f"CURRENT VERIFIED STOCKSENSE DATA (use only for current numeric claims):\n{ctx or 'No live market context available.'}"
+        f"\n\nUSER QUESTION: {message}\n\n"
         "Answer clearly and conversationally. Use the recent conversation to resolve follow-ups. "
         "Separate facts from interpretation, state when data is unavailable, and never invent prices, news, "
         "indicators, fundamentals, or model scores. Do not give personalized buy/sell instructions."
@@ -150,7 +150,7 @@ def _gemini_reply(message: str, history: list[dict] | None, ctx: str) -> str:
             data_out = json.loads(response.read().decode("utf-8"))
         candidates = data_out.get("candidates") or []
         parts = candidates[0].get("content", {}).get("parts", []) if candidates else []
-        answer_text = "\\n".join(p.get("text", "") for p in parts if p.get("text"))
+        answer_text = "\n".join(p.get("text", "") for p in parts if p.get("text"))
         if not answer_text.strip():
             raise RuntimeError("Gemini returned an empty response.")
         return answer_text.strip()
@@ -171,7 +171,7 @@ def answer(message: str, history: list[dict] | None = None) -> dict:
                     "model": os.getenv("STOCKSENSE_GEMINI_MODEL", "gemini-2.5-flash")}
         except Exception as exc:
             fallback = _rules(message, symbol, ctx)
-            return {"reply": fallback + f"\\n\\n(Gemini unavailable: {exc})",
+            return {"reply": fallback + f"\n\n(Gemini unavailable: {exc})",
                     "mode": "rules", "symbol": symbol, "provider_error": True}
     # Keep the existing Claude integration as a supported alternative.
     key = os.getenv("ANTHROPIC_API_KEY")
@@ -182,7 +182,7 @@ def answer(message: str, history: list[dict] | None = None) -> dict:
             msgs = [{"role": h["role"], "content": h["content"]}
                     for h in (history or [])[-8:]
                     if h.get("role") in ("user", "assistant")]
-            msgs.append({"role": "user", "content": f"CONTEXT (live data):\\n{ctx or 'none'}\\n\\nQUESTION: {message}"})
+            msgs.append({"role": "user", "content": f"CONTEXT (live data):\n{ctx or 'none'}\n\nQUESTION: {message}"})
             resp = client.messages.create(
                 model=os.getenv("STOCKSENSE_LLM_MODEL", "claude-haiku-5-5"),
                 max_tokens=700, system=SYSTEM, messages=msgs
@@ -190,6 +190,6 @@ def answer(message: str, history: list[dict] | None = None) -> dict:
             reply = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text")
             return {"reply": reply, "mode": "llm", "symbol": symbol}
         except Exception as exc:
-            return {"reply": _rules(message, symbol, ctx) + f"\\n\\n(Claude unavailable: {exc})",
+            return {"reply": _rules(message, symbol, ctx) + f"\n\n(Claude unavailable: {exc})",
                     "mode": "rules", "symbol": symbol, "provider_error": True}
     return {"reply": _rules(message, symbol, ctx), "mode": "rules", "symbol": symbol}
