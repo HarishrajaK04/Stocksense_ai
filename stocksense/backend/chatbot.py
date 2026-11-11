@@ -121,7 +121,11 @@ def _gemini_reply(message: str, history: list[dict] | None, ctx: str) -> str:
     import urllib.request
 
     key = os.getenv("GEMINI_API_KEY")
-    model = os.getenv("STOCKSENSE_GEMINI_MODEL", "gemini-2.5-flash")
+    model = (os.getenv("STOCKSENSE_GEMINI_MODEL") or "gemini-2.5-flash").strip().strip("\'\\\"")
+    if model.startswith("models/"):
+        model = model[len("models/"):]
+    if not model:
+        model = "gemini-2.5-flash"
     contents = []
     for item in (history or [])[-10:]:
         role = item.get("role")
