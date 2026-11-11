@@ -46,11 +46,28 @@ async function guarded(btn, fn) {
   try { await fn(); } catch (e) { showError(e.message); } finally { if (btn) btn.disabled = false; }
 }
 
-Chart.defaults.color = "#6b7694";
-Chart.defaults.borderColor = "#e4e9f5";
-Chart.defaults.font.family = "Inter, sans-serif";
+// Charts are optional: the dashboard data must still load if the Chart.js CDN is unavailable.
+if (typeof Chart !== "undefined") {
+  Chart.defaults.color = "#6b7694";
+  Chart.defaults.borderColor = "#e4e9f5";
+  Chart.defaults.font.family = "Inter, sans-serif";
+}
 function draw(id, config) {
   if (charts[id]) charts[id].destroy();
+  if (typeof Chart === "undefined") {
+    const canvas = $("#" + id);
+    if (canvas) {
+      const ctx = canvas.getContext && canvas.getContext("2d");
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#6b7694";
+        ctx.font = "14px sans-serif";
+        ctx.fillText("Chart library unavailable", 12, 24);
+      }
+    }
+    charts[id] = { destroy() {} };
+    return charts[id];
+  }
   config.options = Object.assign({ responsive: true, maintainAspectRatio: false, animation: false }, config.options || {});
   charts[id] = new Chart($("#" + id), config);
   return charts[id];
