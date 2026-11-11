@@ -121,11 +121,11 @@ def _gemini_reply(message: str, history: list[dict] | None, ctx: str) -> str:
     import urllib.request
 
     key = os.getenv("GEMINI_API_KEY")
-    model = (os.getenv("STOCKSENSE_GEMINI_MODEL") or "gemini-2.5-flash").strip().strip("\'\\\"")
+    model = (os.getenv("STOCKSENSE_GEMINI_MODEL") or "gemini-3.8-flash").strip().strip("\'\\\"")
     if model.startswith("models/"):
         model = model[len("models/"):]
     if not model:
-        model = "gemini-2.5-flash"
+        model = "gemini-3.8-flash"
     contents = []
     for item in (history or [])[-10:]:
         role = item.get("role")
@@ -172,7 +172,7 @@ def answer(message: str, history: list[dict] | None = None) -> dict:
         try:
             reply = _gemini_reply(message, history, ctx)
             return {"reply": reply, "mode": "gemini", "symbol": symbol,
-                    "model": os.getenv("STOCKSENSE_GEMINI_MODEL", "gemini-2.5-flash")}
+                    "model": os.getenv("STOCKSENSE_GEMINI_MODEL", "gemini-3.8-flash")}
         except Exception as exc:
             fallback = _rules(message, symbol, ctx)
             return {"reply": fallback + f"\n\n(Gemini unavailable: {exc})",
