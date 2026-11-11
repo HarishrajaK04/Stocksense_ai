@@ -104,20 +104,92 @@ def _rules(msg: str, symbol: str | None, ctx: str) -> str:
             "Try: 'How is TCS doing?', 'What is RSI?' or 'Explain max drawdown'.")
 
 
+def _history_symbol(history: list[dict] | None) -> str | None:
+    """Recover a stock from recent turns when the user says 'it' or 'that company'."""
+    for item in reversed(history or []):
+        if item.get("role") == "user":
+            found = _find_symbol(str(item.get("content", "")))
+            if found:
+                return found
+    return None
+
+
+def _gemini_reply(message: str, history: list[dict] | None, ctx: str) -> str:
+    """Call Gemini through the server; the API key never reaches the browser."""
+    import json
+    import urllib.error
+    import urllib.request
+
+    key = os.getenv("GEMINI_API_KEY")
+    model = os.getenv("STOCKSENSE_GEMINI_MODEL", "gemini-2.5-flash")
+    contents = []
+    for item in (history or [])[-10:]:
+        role = item.get("role")
+        content = item.get("content")
+        if role in ("user", "assistant") and isinstance(content, str) and content.strip():
+            contents.append({"role": "user" if role == "user" else "model",
+                             "parts": [{"text": content[:3000]}]})
+    prompt = (
+        f"CURRENT VERIFIED STOCKSENSE DATA (use only for current numeric claims):\\n{ctx or 'No live market context available.'}"
+        f"\\n\\nUSER QUESTION: {message}\\n\\n"
+        "Answer clearly and conversationally. Use the recent conversation to resolve follow-ups. "
+        "Separate facts from interpretation, state when data is unavailable, and never invent prices, news, "
+        "indicators, fundamentals, or model scores. Do not give personalized buy/sell instructions."
+    )
+    contents.append({"role": "user", "parts": [{"text": prompt}]})
+    payload = {
+        "systemInstruction": {"parts": [{"text": SYSTEM}]},
+        "contents": contents,
+        "generationConfig": {"temperature": 0.35, "maxOutputTokens": 900},
+    }
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+    req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"),
+                                 headers={"Content-Type": "application/json"}, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=35) as response:
+            data_out = json.loads(response.read().decode("utf-8"))
+        candidates = data_out.get("candidates") or []
+        parts = candidates[0].get("content", {}).get("parts", []) if candidates else []
+        answer_text = "\\n".join(p.get("text", "") for p in parts if p.get("text"))
+        if not answer_text.strip():
+            raise RuntimeError("Gemini returned an empty response.")
+        return answer_text.strip()
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")[:500]
+        raise RuntimeError(f"Gemini API error ({exc.code}): {detail}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError("Could not reach the Gemini API. Check the server connection.") from exc
+
+
 def answer(message: str, history: list[dict] | None = None) -> dict:
-    symbol = _find_symbol(message)
+    symbol = _find_symbol(message) or _history_symbol(history)
     ctx = _context(symbol)
+    if os.getenv("GEMINI_API_KEY"):
+        try:
+            reply = _gemini_reply(message, history, ctx)
+            return {"reply": reply, "mode": "gemini", "symbol": symbol,
+                    "model": os.getenv("STOCKSENSE_GEMINI_MODEL", "gemini-2.5-flash")}
+        except Exception as exc:
+            fallback = _rules(message, symbol, ctx)
+            return {"reply": fallback + f"\\n\\n(Gemini unavailable: {exc})",
+                    "mode": "rules", "symbol": symbol, "provider_error": True}
+    # Keep the existing Claude integration as a supported alternative.
     key = os.getenv("ANTHROPIC_API_KEY")
     if key:
         try:
             import anthropic
-
             client = anthropic.Anthropic(api_key=key)
-            msgs = [{"role": h["role"], "content": h["content"]} for h in (history or [])[-8:] if h.get("role") in ("user", "assistant")]
-            msgs.append({"role": "user", "content": f"CONTEXT (live data):\n{ctx or 'none'}\n\nQUESTION: {message}"})
-            resp = client.messages.create(model=os.getenv("STOCKSENSE_LLM_MODEL", "claude-haiku-5-5"), max_tokens=700, system=SYSTEM, messages=msgs)
-            text = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text")
-            return {"reply": text, "mode": "llm", "symbol": symbol}
-        except Exception as e:  # fall back gracefully
-            return {"reply": _rules(message, symbol, ctx) + f"\n\n(LLM unavailable: {e})", "mode": "rules", "symbol": symbol}
+            msgs = [{"role": h["role"], "content": h["content"]}
+                    for h in (history or [])[-8:]
+                    if h.get("role") in ("user", "assistant")]
+            msgs.append({"role": "user", "content": f"CONTEXT (live data):\\n{ctx or 'none'}\\n\\nQUESTION: {message}"})
+            resp = client.messages.create(
+                model=os.getenv("STOCKSENSE_LLM_MODEL", "claude-haiku-5-5"),
+                max_tokens=700, system=SYSTEM, messages=msgs
+            )
+            reply = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text")
+            return {"reply": reply, "mode": "llm", "symbol": symbol}
+        except Exception as exc:
+            return {"reply": _rules(message, symbol, ctx) + f"\\n\\n(Claude unavailable: {exc})",
+                    "mode": "rules", "symbol": symbol, "provider_error": True}
     return {"reply": _rules(message, symbol, ctx), "mode": "rules", "symbol": symbol}
