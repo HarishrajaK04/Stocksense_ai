@@ -101,8 +101,8 @@ window.STOCKSENSE_API = "";</script>
 
     <!-- CHAT -->
     <section class="view" id="view-chat">
-      <h1>AI Chatbot</h1>
-      <div class="panel chat">
+      <div class="section-heading"><div><h1>StockSense AI Copilot</h1><p class="muted">Ask about Indian equities, market movements, indicators and risk. Answers use available market context.</p></div><button id="chatClear" class="ghost">New conversation</button></div>
+      <div class="panel chat">\n        <div class="chat-status"><span class="status-dot"></span><span>Context-aware assistant</span><span class="muted">·</span><span class="muted">Gemini when configured</span></div>
         <div id="chatLog" class="chat-log"></div>
         <div class="chips" id="chatSuggest"></div>
         <div class="toolbar"><input id="chatInput" placeholder="Ask about a stock, an indicator, or a financial term..." autocomplete="off"><button id="chatSend">Send</button></div>
@@ -190,12 +190,12 @@ window.STOCKSENSE_API = "";</script>
     <!-- SETTINGS -->
     <section class="view" id="view-settings">
       <h1>Settings</h1>
-      <div class="panel form">
+      <div class="panel form">\n        <div class="settings-intro"><h3>Workspace preferences</h3><p class="muted">Tune the dashboard without changing its original colour theme.</p></div>\n        <div class="settings-group"><h3>Market defaults</h3>
         <label>Default stock <input id="setSymbol" list="symbols"></label>
         <label>Default chart range <select id="setRange"></select></label>
         <label>Auto-refresh (seconds, 0 = off) <input id="setRefresh" type="number" min="0" max="600"></label>
-        <label>News search extra keywords <input id="setNews" placeholder="e.g. earnings OR results"></label>
-        <label>API base URL (only if hosted separately) <input id="setApi" placeholder="https://your-api.onrender.com"></label>
+        <label>News search extra keywords <input id="setNews" placeholder="e.g. earnings OR results"></label></div>\n        <div class="settings-group"><h3>Connection</h3>
+        <label>API base URL (only if hosted separately) <input id="setApi" placeholder="https://your-api.onrender.com"></label>\n        <div class="settings-status" id="settingsStatus">Checking AI and API connection…</div></div>
         <div class="toolbar"><button id="setSave">Save settings</button><button id="setReset" class="ghost">Reset</button><span id="setMsg" class="muted"></span></div>
       </div>
     </section>
