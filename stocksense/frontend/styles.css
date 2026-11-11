@@ -234,3 +234,26 @@ main{width:100%;padding:22px clamp(16px,3vw,42px) 60px}
   .section-heading{align-items:flex-start;flex-direction:column}
   .settings-intro,.settings-group{grid-column:1}
 }
+
+
+/* Responsive navigation: keep every destination visible without changing the theme */
+@media(max-width:1800px){
+  .sidebar{flex-wrap:wrap;align-items:center;gap:8px 18px;padding:12px 22px}
+  .brand{order:0}
+  nav{
+    order:1;flex:1 1 100%;width:100%;min-width:0;
+    flex-wrap:wrap;justify-content:center;overflow:visible;
+    padding:3px 0;gap:4px 7px
+  }
+  nav button{font-size:12px;padding:8px 12px}
+}
+@media(max-width:680px){
+  .sidebar{gap:8px;padding:9px 10px}
+  .brand{align-self:flex-start}
+  nav{
+    flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;
+    overflow-y:hidden;scrollbar-width:none;padding:3px 0 5px
+  }
+  nav::-webkit-scrollbar{display:none}
+  nav button{flex:none;font-size:11px;padding:8px 11px}
+}
