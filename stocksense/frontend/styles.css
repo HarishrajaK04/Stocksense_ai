@@ -136,3 +136,101 @@ tr.click{cursor:pointer;transition:background .1s}tr.click:hover{background:#f4f
   .hero{padding:20px}.hero h1{font-size:24px}
   input[type=text],input:not([type]){min-width:140px;flex:1}
 }
+
+
+/* ------------------------------------------------------------ flowing top navigation refresh
+   Preserve the original StockSense palette; change layout and motion only. */
+.app{display:flex;flex-direction:column;min-height:100vh}
+.sidebar{
+  position:sticky;top:0;z-index:30;width:100%;height:auto;min-height:76px;
+  padding:12px 22px;display:flex;flex-direction:row;align-items:center;
+  gap:22px;overflow:visible;box-shadow:0 8px 24px rgba(59,59,214,.16)
+}
+.brand{flex:none;white-space:nowrap}
+nav{
+  flex:1;min-width:0;display:flex;flex-direction:row;align-items:center;
+  gap:5px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;
+  padding:4px 2px;scroll-behavior:smooth
+}
+nav::-webkit-scrollbar{display:none}
+nav button{
+  flex:none;white-space:nowrap;text-align:center;padding:9px 12px;
+  border:1px solid transparent;border-radius:999px;font-size:12px;
+  transform:translateY(0);transition:background .22s ease,color .22s ease,
+  transform .22s ease,box-shadow .22s ease,border-color .22s ease
+}
+nav button:hover{transform:translateY(-2px);background:rgba(255,255,255,.16)}
+nav button.active{
+  background:#fff;color:var(--accent);font-weight:700;
+  box-shadow:0 5px 18px rgba(25,25,90,.2);border-color:rgba(255,255,255,.7)
+}
+.fine{display:none}
+main{width:100%;padding:22px clamp(16px,3vw,42px) 60px}
+.topbar{position:relative;min-height:38px}
+.menu{display:none!important}
+
+/* More deliberate chat surface while retaining the existing palette */
+.chat{gap:12px;padding:20px}
+.chat-log{min-height:380px;height:55vh;padding:12px 8px 18px}
+.msg{max-width:min(78%,720px);padding:13px 17px;box-shadow:0 3px 12px rgba(60,72,140,.06)}
+.msg.bot{border-radius:17px 17px 17px 5px;background:#f1f4fb}
+.msg.user{border-radius:17px 17px 5px 17px}
+#chatSuggest{padding:2px 0}
+#chatInput{min-height:44px}
+.chat .toolbar{position:sticky;bottom:0;background:var(--panel);padding-top:8px;margin-bottom:0}
+
+/* Settings controls read as a tidy preferences workspace */
+#view-settings .form{max-width:900px;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+#view-settings .form label{background:var(--panel2);border:1px solid var(--line);border-radius:13px;padding:13px}
+#view-settings .form label input,#view-settings .form label select{width:100%;background:#fff}
+#view-settings .form .toolbar{grid-column:1/-1;align-items:center}
+
+/* Tablet and phone: keep the same top navigation, allow horizontal swiping */
+@media(max-width:1000px){
+  .sidebar{gap:14px;padding:11px 14px}
+  .brand small{display:none}
+  nav{gap:3px}
+  nav button{font-size:11px;padding:8px 10px}
+}
+@media(max-width:680px){
+  .sidebar{min-height:66px;align-items:center;gap:10px;padding:9px 12px}
+  .brand{gap:7px;padding:0}
+  .brand b{font-size:13px}
+  .logo{width:32px;height:32px;border-radius:10px}
+  nav{overflow-x:auto;flex:1}
+  nav button{font-size:11px;padding:8px 10px}
+  main{padding:14px 12px 48px}
+  .topbar{flex-wrap:wrap}
+  .chat{padding:12px}
+  .chat-log{height:56vh;min-height:300px}
+  .msg{max-width:92%}
+  #view-settings .form{grid-template-columns:1fr}
+  #view-settings .form .toolbar{grid-column:1}
+}
+@media(prefers-reduced-motion:reduce){
+  nav button,.view.active{transition:none;animation:none}
+}
+
+
+/* Copilot and settings refinements */
+.section-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
+.section-heading h1{margin-bottom:5px}
+.chat-status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);padding:0 4px 8px}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--up);box-shadow:0 0 0 4px rgba(15,169,104,.1)}
+.settings-intro{grid-column:1/-1;padding-bottom:2px}
+.settings-intro h3{margin-bottom:4px}
+.settings-intro p{margin:0}
+.settings-group{display:grid;gap:12px;align-content:start;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.settings-group h3{margin:0 0 2px;color:var(--text)}
+.settings-group label{display:flex;flex-direction:column;align-items:stretch;gap:6px}
+.settings-group input,.settings-group select{width:100%}
+.settings-status{padding:12px;border-radius:11px;background:var(--panel2);border:1px solid var(--line);font-size:12px;line-height:1.8}
+#view-settings .form>.toolbar{grid-column:1/-1}
+@media(max-width:1000px){
+  .sidebar{position:sticky;left:auto;width:100%;z-index:30;transition:none}
+}
+@media(max-width:680px){
+  .sidebar{position:sticky;left:auto;width:100%;z-index:30;transition:none}
+  .section-heading{align-items:flex-start;flex-direction:column}
+  .settings-intro,.settings-group{grid-column:1}
+}

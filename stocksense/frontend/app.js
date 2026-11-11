@@ -194,11 +194,12 @@ async function sendChat(text) {
   const wait = addMsg("bot", "Thinking...");
   try {
     const r = await post("/api/chat", { message: text, history: chatHistory });
-    wait.remove(); addMsg("bot", r.reply, r.mode === "llm" ? "AI model, grounded in live data" : "rule-based mode, grounded in live data");
+    wait.remove(); addMsg("bot", r.reply, r.mode === "gemini" ? "Gemini · grounded in available market data" : r.mode === "llm" ? "Claude · grounded in available market data" : "Fallback assistant · limited responses");
     chatHistory.push({ role: "user", content: text }, { role: "assistant", content: r.reply }); chatHistory = chatHistory.slice(-10);
   } catch (e) { wait.remove(); addMsg("bot", "Error: " + e.message); }
 }
 $("#chatSend").addEventListener("click", () => sendChat());
+$("#chatClear").addEventListener("click", () => { chatHistory = []; $("#chatLog").innerHTML = ""; addMsg("bot", "New conversation started. Ask me about an NSE stock, market movement, indicator or risk metric."); });
 $("#chatInput").addEventListener("keydown", e => { if (e.key === "Enter") sendChat(); });
 $("#chatSuggest").innerHTML = SUGGEST.map(s => `<span class="chip" data-q="${esc(s)}">${esc(s)}</span>`).join("");
 $("#chatSuggest").addEventListener("click", e => { const c = e.target.closest("[data-q]"); if (c) sendChat(c.dataset.q); });
@@ -246,6 +247,45 @@ async function loadModels() {
     $("#modelDocs").dataset.done = 1;
   });
 }
+
+/* ------------------------------------------------------------ model benchmarking */
+$("#modelBenchGo").addEventListener("click", () => guarded($("#modelBenchGo"), async () => {
+  const symbol = $("#modelBenchSymbol").value.trim().toUpperCase() || "RELIANCE";
+  const period = $("#modelBenchPeriod").value;
+  const status = $("#modelBenchStatus");
+  status.textContent = "Training and evaluating Ridge, Random Forest and Gradient Boosting on the same chronological split…";
+  $("#modelBenchCards").innerHTML = ""; $("#modelBenchTable").innerHTML = "";
+  const configs = [
+    ["ridge", "Ridge regression"],
+    ["random_forest", "Random Forest"],
+    ["gradient_boosting", "Gradient Boosting"]
+  ];
+  try {
+    const results = await Promise.all(configs.map(async ([id, name]) => {
+      const d = await post("/api/forecast", {symbol, model:id, horizon:10, period});
+      return {id, name, metrics:d.metrics, symbol:d.symbol};
+    }));
+    const best = [...results].sort((a,b) => a.metrics.model.rmse_return-b.metrics.model.rmse_return)[0];
+    const card = (label, value, sub) => `<div class="card"><div class="k">${label}</div><div class="v" style="font-size:19px">${value}</div><div class="s muted">${sub}</div></div>`;
+    $("#modelBenchCards").innerHTML =
+      card("Lowest test RMSE", best.name, "Best error on this selected holdout") +
+      card("Models evaluated", results.length, "Same symbol and history window") +
+      card("Evaluation symbol", esc(symbol), esc(period) + " historical data");
+    $("#modelBenchTable").innerHTML = `<thead><tr><th>Model</th><th class="r">RMSE (return)</th><th class="r">MAE (return)</th><th class="r">Price MAPE</th><th class="r">Direction accuracy</th><th>Vs naive RMSE</th></tr></thead><tbody>` +
+      results.map(x => {
+        const m=x.metrics.model, n=x.metrics.naive_baseline;
+        return `<tr><td><b>${x.name}</b></td><td class="r">${(m.rmse_return*100).toFixed(3)}%</td><td class="r">${(m.mae_return*100).toFixed(3)}%</td><td class="r">${m.price_mape_pct.toFixed(3)}%</td><td class="r">${frac(m.directional_accuracy)}</td><td>${x.metrics.beats_naive_rmse ? '<span class="up">Beat baseline</span>' : '<span class="down">Did not beat</span>'}</td></tr>`;
+      }).join("") + "</tbody>";
+    draw("modelBenchChart", {type:"bar", data:{labels:results.map(x=>x.name),datasets:[
+      {label:"Model RMSE (%)",data:results.map(x=>x.metrics.model.rmse_return*100),backgroundColor:"#5b5bf0"},
+      {label:"Naive RMSE (%)",data:results.map(x=>x.metrics.naive_baseline.rmse_return*100),backgroundColor:"#8b5cf6"}
+    ]},options:lineOpts({indexAxis:"y",plugins:{legend:{display:true}},scales:{x:{beginAtZero:true,title:{display:true,text:"RMSE in percentage points"}},y:{grid:{display:false}}}})});
+    status.textContent = "Completed. This is a historical holdout comparison for " + symbol + "; it does not predict which model will perform best in future markets.";
+  } catch (e) {
+    status.textContent = "Benchmark failed: " + e.message;
+    throw e;
+  }
+}));
 
 /* ------------------------------------------------------------ strategy */
 const PARAMS = {
@@ -304,20 +344,33 @@ $("#wlAdd").addEventListener("click", () => { const s = $("#wlSymbol").value.tri
 $("#wlSymbol").addEventListener("keydown", e => { if (e.key === "Enter") $("#wlAdd").click(); });
 
 /* ------------------------------------------------------------ settings */
-function fillSettings() { $("#setSymbol").value = S.symbol; $("#setRefresh").value = S.refresh; $("#setNews").value = S.news; $("#setApi").value = S.apiBase; buildRangeButtons(); }
+function fillSettings() {
+  $("#setSymbol").value = S.symbol; $("#setRefresh").value = S.refresh;
+  $("#setNews").value = S.news; $("#setApi").value = S.apiBase; buildRangeButtons();
+  refreshSettingsStatus();
+}
+async function refreshSettingsStatus() {
+  const el = $("#settingsStatus"); if (!el) return;
+  try {
+    const h = await api("/api/health");
+    el.innerHTML = `<b>API:</b> <span class="up">Connected</span><br><b>AI provider:</b> ${esc(h.ai_provider || (h.llm ? "Configured" : "Rules fallback"))}<br><span class="muted">${h.llm ? "Server-side AI key detected. API keys are never shown in this dashboard." : "Add GEMINI_API_KEY in your hosting provider's environment variables to enable Gemini."}</span>`;
+  } catch (e) { el.textContent = "Could not verify API status: " + e.message; }
+}
 $("#setSave").addEventListener("click", () => {
   S = { symbol: $("#setSymbol").value.trim().toUpperCase() || DEFAULTS.symbol, range: $("#setRange").value, refresh: Math.max(0, +$("#setRefresh").value || 0), news: $("#setNews").value.trim(), apiBase: $("#setApi").value.trim() };
   try { localStorage.setItem("ss_settings", JSON.stringify(S)); } catch { }
-  exRange = S.range; buildRangeButtons(); startTimer(); $("#setMsg").textContent = "Saved.";
+  exRange = S.range; buildRangeButtons(); startTimer(); refreshSettingsStatus(); $("#setMsg").textContent = "Saved.";
 });
-$("#setReset").addEventListener("click", () => { try { localStorage.removeItem("ss_settings"); } catch { } S = { ...DEFAULTS }; fillSettings(); startTimer(); $("#setMsg").textContent = "Reset to defaults."; });
+$("#setReset").addEventListener("click", () => { try { localStorage.removeItem("ss_settings"); } catch { } S = { ...DEFAULTS }; fillSettings(); startTimer(); refreshSettingsStatus(); $("#setMsg").textContent = "Reset to defaults."; });
 
 /* ------------------------------------------------------------ loaders / boot */
 const loaders = {
   overview: loadOverview,
   explorer: () => { if (!lastHist || lastHist.symbol !== (exSymbol || "").toUpperCase()) loadExplorer(exSymbol || S.symbol); },
   news: () => { if (!$("#newsList").children.length) loadNews(); },
-  chat: () => { if (!$("#chatLog").children.length) addMsg("bot", "Hi! I'm StockSense AI. Ask me about any NSE stock, an indicator, or a market term - I'll use live data where I can.\n\nResearch only, not financial advice."); },
+  chat: () => { if (!$("#chatLog").children.length) addMsg("bot", "Hi! I'm StockSense AI. Ask me about any NSE stock, an indicator, or a market term - I'll use live data where I can.
+
+Research only, not financial advice."); },
   forecast: () => { }, models: loadModels, strategy: () => { }, risk: () => { }, watchlist: loadWatchlist, settings: fillSettings,
 };
 let timer = null;
