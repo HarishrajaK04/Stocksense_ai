@@ -97,7 +97,7 @@ def _rules(msg: str, symbol: str | None, ctx: str) -> str:
             extra = f"\n\nLive data for {symbol}:\n{ctx}" if symbol and ctx else ""
             return text + extra
     if symbol and ctx:
-        return f"Here is what the data currently shows for {symbol}:\n\n{ctx}\n\n(Add an ANTHROPIC_API_KEY on the server for fuller conversational analysis. This is research, not financial advice.)"
+        return f"Here is what the data currently shows for {symbol}:\n\n{ctx}\n\n(AI conversational analysis is currently unavailable; showing the available market data and rule-based summary. This is research, not financial advice.)"
     if any(w in low for w in ("market", "index", "indices", "today")) and ctx:
         return f"Market snapshot: {ctx}"
     return ("I can explain terms (P/E, RSI, MACD, Sharpe, drawdown...), and pull live prices, indicators, risk and headlines for a stock. "
@@ -150,7 +150,7 @@ def _gemini_reply(message: str, history: list[dict] | None, ctx: str) -> str:
     req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"),
                                  headers={"Content-Type": "application/json"}, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=35) as response:
+        with urllib.request.urlopen(req, timeout=90) as response:
             data_out = json.loads(response.read().decode("utf-8"))
         candidates = data_out.get("candidates") or []
         parts = candidates[0].get("content", {}).get("parts", []) if candidates else []
