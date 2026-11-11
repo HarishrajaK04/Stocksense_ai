@@ -247,6 +247,45 @@ async function loadModels() {
   });
 }
 
+/* ------------------------------------------------------------ model benchmarking */
+$("#modelBenchGo").addEventListener("click", () => guarded($("#modelBenchGo"), async () => {
+  const symbol = $("#modelBenchSymbol").value.trim().toUpperCase() || "RELIANCE";
+  const period = $("#modelBenchPeriod").value;
+  const status = $("#modelBenchStatus");
+  status.textContent = "Training and evaluating Ridge, Random Forest and Gradient Boosting on the same chronological split…";
+  $("#modelBenchCards").innerHTML = ""; $("#modelBenchTable").innerHTML = "";
+  const configs = [
+    ["ridge", "Ridge regression"],
+    ["random_forest", "Random Forest"],
+    ["gradient_boosting", "Gradient Boosting"]
+  ];
+  try {
+    const results = await Promise.all(configs.map(async ([id, name]) => {
+      const d = await post("/api/forecast", {symbol, model:id, horizon:10, period});
+      return {id, name, metrics:d.metrics, symbol:d.symbol};
+    }));
+    const best = [...results].sort((a,b) => a.metrics.model.rmse_return-b.metrics.model.rmse_return)[0];
+    const card = (label, value, sub) => `<div class="card"><div class="k">${label}</div><div class="v" style="font-size:19px">${value}</div><div class="s muted">${sub}</div></div>`;
+    $("#modelBenchCards").innerHTML =
+      card("Lowest test RMSE", best.name, "Best error on this selected holdout") +
+      card("Models evaluated", results.length, "Same symbol and history window") +
+      card("Evaluation symbol", esc(symbol), esc(period) + " historical data");
+    $("#modelBenchTable").innerHTML = `<thead><tr><th>Model</th><th class="r">RMSE (return)</th><th class="r">MAE (return)</th><th class="r">Price MAPE</th><th class="r">Direction accuracy</th><th>Vs naive RMSE</th></tr></thead><tbody>` +
+      results.map(x => {
+        const m=x.metrics.model, n=x.metrics.naive_baseline;
+        return `<tr><td><b>${x.name}</b></td><td class="r">${(m.rmse_return*100).toFixed(3)}%</td><td class="r">${(m.mae_return*100).toFixed(3)}%</td><td class="r">${m.price_mape_pct.toFixed(3)}%</td><td class="r">${frac(m.directional_accuracy)}</td><td>${x.metrics.beats_naive_rmse ? '<span class="up">Beat baseline</span>' : '<span class="down">Did not beat</span>'}</td></tr>`;
+      }).join("") + "</tbody>";
+    draw("modelBenchChart", {type:"bar", data:{labels:results.map(x=>x.name),datasets:[
+      {label:"Model RMSE (%)",data:results.map(x=>x.metrics.model.rmse_return*100),backgroundColor:"#5b5bf0"},
+      {label:"Naive RMSE (%)",data:results.map(x=>x.metrics.naive_baseline.rmse_return*100),backgroundColor:"#8b5cf6"}
+    ]},options:lineOpts({indexAxis:"y",plugins:{legend:{display:true}},scales:{x:{beginAtZero:true,title:{display:true,text:"RMSE in percentage points"}},y:{grid:{display:false}}}})});
+    status.textContent = "Completed. This is a historical holdout comparison for " + symbol + "; it does not predict which model will perform best in future markets.";
+  } catch (e) {
+    status.textContent = "Benchmark failed: " + e.message;
+    throw e;
+  }
+}));
+
 /* ------------------------------------------------------------ strategy */
 const PARAMS = {
   sma_cross: [["fast", "Fast SMA", 20], ["slow", "Slow SMA", 50]],
